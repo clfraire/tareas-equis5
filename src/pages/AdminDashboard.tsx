@@ -11,7 +11,7 @@ import DescartarModal from '../components/DescartarModal';
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tienda, setTienda] = useState<'mujer' | 'hombre' | 'web'>('mujer'); // <-- Agregamos 'web'
+  const [tienda, setTienda] = useState<'mujer' | 'hombre' | 'web'>('mujer');
   const [estado, setEstado] = useState<'todas' | 'pendiente' | 'completada' | 'vencida' | 'descartada'>('todas');
   const [posponer, setPosponer] = useState<Task | null>(null);
   const [descartar, setDescartar] = useState<Task | null>(null);
@@ -19,7 +19,12 @@ export default function AdminDashboard() {
   async function load() {
     let q = supabase.from('tasks').select('*, profiles:asignado_a(nombre,email)').eq('tienda', tienda);
     if (estado !== 'todas') q = q.eq('estado', estado);
-    const { data } = await q.order('fecha_limite', { ascending: true });
+    
+    // ORDENAMIENTO: Primero Urgentes (descendente), luego por fecha (más próxima primero)
+    const { data } = await q
+      .order('prioridad', { ascending: false })
+      .order('fecha_limite', { ascending: true });
+      
     setTasks(data ?? []);
   }
 
