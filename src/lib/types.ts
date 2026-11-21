@@ -37,3 +37,7 @@ export interface Task {
   created_by: string | null;
   created_at: string;
 }
+  completada_por: string | null;
+  completada_por_nombre: string | null;
+  comentario_completado: string | null; // <-- NUEVO: Agregá esta línea
+  completada_en: string | null;
