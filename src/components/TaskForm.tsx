@@ -14,11 +14,9 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Corrección: Trae a TODOS los perfiles y luego filtra solo a los empleados (evita que se pierdan)
   useEffect(() => {
     supabase.from('profiles').select('*').then(({ data }) => {
       const todos = data ?? [];
-      // Trae a todos los que NO sean tu cuenta principal
       setEmpleados(todos.filter(p => p.email !== 'admin@equis5.com'));
     });
   }, []);
@@ -46,22 +44,19 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
     onCreated();
   }
 
-  // Función para los botones rápidos de fecha
   const setQuickDate = (type: '1h' | '2h' | '12:30' | '20:00') => {
     const now = new Date();
     let targetDate = now;
-    
     if (type === '1h') targetDate = addHours(now, 1);
     if (type === '2h') targetDate = addHours(now, 2);
     if (type === '12:30') targetDate = setMinutes(setHours(now, 12), 30);
     if (type === '20:00') targetDate = setMinutes(setHours(now, 20), 0);
-    
-    const formatted = format(targetDate, "yyyy-MM-dd'T'HH:mm");
-    setForm({ ...form, fecha_limite: formatted });
+    setForm({ ...form, fecha_limite: format(targetDate, "yyyy-MM-dd'T'HH:mm") });
   };
 
-  // Acá filtramos por la tienda seleccionada
-  const filtrados = empleados.filter(e => e.tienda === form.tienda);
+  // Acá está el cambio: mostramos a TODAS las empleadas (ya no filtramos por tienda)
+  // Y le agregamos entre paréntesis la tienda a la que pertenecen para que te guíes
+  const empleadosDisponibles = empleados;
 
   return (
     <form onSubmit={submit} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 space-y-3">
@@ -88,8 +83,12 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
         <select value={form.asignado_a}
           onChange={e => setForm({ ...form, asignado_a: e.target.value })}
           className="border border-gray-300 rounded-lg p-3">
-          <option value="">👥 Cualquiera</option>
-          {filtrados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+          <option value="">👥 Cualquiera (de esa tienda)</option>
+          {empleadosDisponibles.map(e => (
+            <option key={e.id} value={e.id}>
+              {e.nombre} {e.tienda ? `(${e.tienda})` : ''}
+            </option>
+          ))}
         </select>
 
         <select value={form.prioridad}
