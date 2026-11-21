@@ -16,7 +16,7 @@ const PRIORIDAD_BADGE: Record<string, string> = {
   normal: 'bg-black text-white',
 };
 
-export default function HistorialRow({ task, profilesMap }: { task: Task; profilesMap: Record<string, string>; }) {
+export default function HistorialRow({ task }: { task: Task }) {
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<any[] | null>(null);
 
@@ -44,11 +44,11 @@ export default function HistorialRow({ task, profilesMap }: { task: Task; profil
             </div>
             <p className="font-semibold text-sm mt-1 truncate">{task.titulo}</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              👤 {task.asignado_a ? (profilesMap[task.asignado_a] ?? 'empleado') : 'Cualquiera'}
+              👤 {task.asignado_nombre ? task.asignado_nombre : 'Cualquiera'}
               {' · '}📅 vence {format(new Date(task.fecha_limite), "PPp", { locale: es })}
             </p>
-            {task.estado === 'completada' && task.completada_por && (
-              <p className="text-xs text-green-700 mt-0.5">✅ por {profilesMap[task.completada_por] ?? 'empleado'}</p>
+            {task.estado === 'completada' && task.completada_por_nombre && (
+              <p className="text-xs text-green-700 mt-0.5">✅ por {task.completada_por_nombre}</p>
             )}
             {task.estado === 'descartada' && task.motivo_descarte && (
               <p className="text-xs text-gray-600 mt-0.5">🚫 Motivo: {task.motivo_descarte}</p>
