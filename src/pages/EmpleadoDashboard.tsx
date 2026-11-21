@@ -48,23 +48,33 @@ export default function EmpleadoDashboard() {
     return () => { supabase.removeChannel(channel); clearInterval(interval); };
   }, [profile]);
 
-  // SONIDO ALERTA 10 MINUTOS
+  // SONIDO ALERTA (10, 5, 2 min) - SONIDO MAS FUERTE
   useEffect(() => {
     const checkDeadlines = () => {
       const now = new Date().getTime();
       tasks.forEach(task => {
         if (task.estado === 'pendiente') {
           const deadline = new Date(task.fecha_limite).getTime();
-          const diff = deadline - now;
-          if (diff > 0 && diff <= 10 * 60 * 1000 && !alertedTasks.current.has(task.id)) {
-            alertedTasks.current.add(task.id);
-            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-            audio.play().catch(e => console.log('Audio bloqueado por el navegador', e));
+          const diffMs = deadline - now;
+          const diffMins = diffMs / 60000;
+
+          if (diffMins > 0) {
+            let alertKey = null;
+            if (diffMins <= 2) alertKey = `${task.id}-2`;
+            else if (diffMins <= 5) alertKey = `${task.id}-5`;
+            else if (diffMins <= 10) alertKey = `${task.id}-10`;
+
+            if (alertKey && !alertedTasks.current.has(alertKey)) {
+              alertedTasks.current.add(alertKey);
+              const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+              audio.volume = 1.0;
+              audio.play().catch(e => console.log('Audio bloqueado', e));
+            }
           }
         }
       });
     };
-    const interval = setInterval(checkDeadlines, 30000);
+    const interval = setInterval(checkDeadlines, 15000);
     return () => clearInterval(interval);
   }, [tasks]);
 
@@ -88,7 +98,6 @@ export default function EmpleadoDashboard() {
     load();
   }
 
-  // FILTRADO PARA PESTAÑAS
   const filteredTasks = tasks.filter(t => {
     if (mainTab === 'pendientes') {
       if (t.estado !== 'pendiente' && t.estado !== 'vencida') return false;
@@ -107,8 +116,6 @@ export default function EmpleadoDashboard() {
   return (
     <Layout>
       <div className="space-y-4">
-        
-        {/* Pestañas Principales */}
         <div className="flex border-b border-gray-300">
           <button onClick={() => { setMainTab('pendientes'); setSubTab('todas'); }}
             className={`px-4 py-2 font-bold ${mainTab === 'pendientes' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>
@@ -120,7 +127,6 @@ export default function EmpleadoDashboard() {
           </button>
         </div>
 
-        {/* Sub-Pestañas */}
         <div className="flex flex-wrap gap-2">
           {mainTab === 'pendientes' ? (
             <>
@@ -138,7 +144,6 @@ export default function EmpleadoDashboard() {
           )}
         </div>
 
-        {/* Listado */}
         <div className="grid gap-3">
           {filteredTasks.map(t => (
             <TaskCard key={t.id} task={t} currentUserId={profile?.id ?? ''}
@@ -148,7 +153,6 @@ export default function EmpleadoDashboard() {
         </div>
       </div>
 
-      {/* MODAL COMPLETAR */}
       {completarTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
