@@ -39,12 +39,18 @@ export default function EmpleadoDashboard() {
   useEffect(() => { load(); }, [profile]);
 
   // REALTIME Y AUTO-REFRESCO
-  useEffect(() => {
+useEffect(() => {
     if (!profile) return;
     const channel = supabase.channel('tasks-emp')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, load)
       .subscribe();
-    const interval = setInterval(load, 30000);
+      
+    // ACÁ ESTÁ EL RELOJ: Revisa y marca las vencidas cada 30 segundos
+    const interval = setInterval(async () => {
+      await supabase.rpc('marcar_tareas_vencidas');
+      load();
+    }, 30000);
+    
     return () => { supabase.removeChannel(channel); clearInterval(interval); };
   }, [profile]);
 
