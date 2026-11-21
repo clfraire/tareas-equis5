@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   useEffect(() => { load(); }, [tienda]);
 
-  // REALTIME Y AUTO-REFRESCO (cada 30 seg)
+  // REALTIME Y AUTO-REFRESCO
   useEffect(() => {
     const channel = supabase.channel('tasks-admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, load)
@@ -38,24 +38,36 @@ export default function AdminDashboard() {
     return () => { supabase.removeChannel(channel); clearInterval(interval); };
   }, [tienda]);
 
-  // SONIDO ALERTA 10 MINUTOS
+  // SONIDO ALERTA (10, 5, 2 min) - SONIDO MAS FUERTE
   useEffect(() => {
     const checkDeadlines = () => {
       const now = new Date().getTime();
       tasks.forEach(task => {
         if (task.estado === 'pendiente') {
           const deadline = new Date(task.fecha_limite).getTime();
-          const diff = deadline - now;
-          // Si faltan menos de 10 min (600,000 ms) y no sonó todavía
-          if (diff > 0 && diff <= 10 * 60 * 1000 && !alertedTasks.current.has(task.id)) {
-            alertedTasks.current.add(task.id);
-            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-            audio.play().catch(e => console.log('Audio bloqueado por el navegador', e));
+          const diffMs = deadline - now;
+          const diffMins = diffMs / 60000; // Diferencia en minutos
+
+          if (diffMins > 0) {
+            let alertKey = null;
+            // Lógica para 10, 5 y 2 minutos
+            if (diffMins <= 2) alertKey = `${task.id}-2`;
+            else if (diffMins <= 5) alertKey = `${task.id}-5`;
+            else if (diffMins <= 10) alertKey = `${task.id}-10`;
+
+            if (alertKey && !alertedTasks.current.has(alertKey)) {
+              alertedTasks.current.add(alertKey);
+              
+              // Sonido de alarma más fuerte
+              const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+              audio.volume = 1.0; // Volumen al máximo
+              audio.play().catch(e => console.log('Audio bloqueado por el navegador', e));
+            }
           }
         }
       });
     };
-    const interval = setInterval(checkDeadlines, 30000); // Revisa cada 30 seg
+    const interval = setInterval(checkDeadlines, 15000); // Revisa cada 15 segundos
     return () => clearInterval(interval);
   }, [tasks]);
 
@@ -67,7 +79,6 @@ export default function AdminDashboard() {
     load();
   }
 
-  // FILTRADO PARA LAS PESTAÑAS
   const filteredTasks = tasks.filter(t => {
     if (mainTab === 'pendientes') {
       if (t.estado !== 'pendiente' && t.estado !== 'vencida') return false;
@@ -91,7 +102,6 @@ export default function AdminDashboard() {
         </div>
         
         <div className="lg:col-span-2 space-y-4">
-          {/* Selector de Tienda */}
           <div className="flex flex-wrap gap-2">
             {(['mujer', 'hombre', 'web'] as const).map(t => (
               <button key={t} onClick={() => { setTienda(t); setMainTab('pendientes'); setSubTab('todas'); }}
@@ -101,7 +111,6 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Pestañas Principales */}
           <div className="flex border-b border-gray-300">
             <button onClick={() => { setMainTab('pendientes'); setSubTab('todas'); }}
               className={`px-4 py-2 font-bold ${mainTab === 'pendientes' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>
@@ -113,13 +122,12 @@ export default function AdminDashboard() {
             </button>
           </div>
 
-          {/* Sub-Pestañas */}
           <div className="flex flex-wrap gap-2">
             {mainTab === 'pendientes' ? (
               <>
                 <button onClick={() => setSubTab('todas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>Todas</button>
                 <button onClick={() => setSubTab('normales')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'normales' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>⚫ Normales</button>
-                <button onClick={() => setSubTab('urgentes')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'urgentes' ? 'bg-red-600 text-white border-red-600' : 'bg-red-50 text-red-700'}`}>🔴 Urgentes (Hora/Día)</button>
+                <button onClick={() => setSubTab('urgentes')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'urgentes' ? 'bg-red-600 text-white border-red-600' : 'bg-red-50 text-red-700'}`}>🔴 Urgentes</button>
               </>
             ) : (
               <>
@@ -131,7 +139,6 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Listado de Tareas */}
           <div className="grid gap-3">
             {filteredTasks.map(t => (
               <TaskCard key={t.id} task={t} currentUserId={profile?.id ?? ''}
