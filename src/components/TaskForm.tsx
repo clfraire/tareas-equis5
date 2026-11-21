@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Profile, Tienda, Prioridad, Frecuencia } from '../lib/types';
+import type { Empleado, Tienda, Prioridad, Frecuencia } from '../lib/types';
 
 export default function TaskForm({ onCreated }: { onCreated: () => void }) {
-  const [empleados, setEmpleados] = useState<Profile[]>([]);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [form, setForm] = useState({
     titulo: '', descripcion: '', tienda: 'mujer' as Tienda,
-    asignado_a: '', prioridad: 'normal' as Prioridad,
+    asignado_nombre: '', prioridad: 'normal' as Prioridad,
     frecuencia: 'dia' as Frecuencia,
     fecha_limite: '', tiempo_estimado: 30,
   });
@@ -14,7 +14,7 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    supabase.from('profiles').select('*').eq('rol', 'empleado').then(({ data }) => setEmpleados(data ?? []));
+    supabase.from('empleados').select('*').then(({ data }) => setEmpleados(data ?? []));
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -24,7 +24,7 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
       titulo: form.titulo,
       descripcion: form.descripcion || null,
       tienda: form.tienda,
-      asignado_a: form.asignado_a || null,
+      asignado_nombre: form.asignado_nombre || null, // Guardamos el nombre
       prioridad: form.prioridad,
       frecuencia: form.frecuencia,
       fecha_limite: new Date(form.fecha_limite).toISOString(),
@@ -37,7 +37,7 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   }
 
   // Filtra las empleadas según la tienda seleccionada
-  const filtrados = empleados.filter(e => e.tienda === form.tienda || e.tienda === null);
+  const filtrados = empleados.filter(e => e.tienda === form.tienda);
 
   return (
     <form onSubmit={submit} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 space-y-3">
@@ -54,18 +54,18 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
 
       <div className="grid grid-cols-2 gap-3">
         <select value={form.tienda}
-          onChange={e => setForm({ ...form, tienda: e.target.value as Tienda, asignado_a: '' })}
+          onChange={e => setForm({ ...form, tienda: e.target.value as Tienda, asignado_nombre: '' })}
           className="border border-gray-300 rounded-lg p-3">
           <option value="mujer">Tienda Mujer</option>
           <option value="hombre">Tienda Hombre</option>
-          <option value="web">Página Web</option> {/* <-- Nueva opción */}
+          <option value="web">Página Web</option>
         </select>
 
-        <select value={form.asignado_a}
-          onChange={e => setForm({ ...form, asignado_a: e.target.value })}
+        <select value={form.asignado_nombre}
+          onChange={e => setForm({ ...form, asignado_nombre: e.target.value })}
           className="border border-gray-300 rounded-lg p-3">
           <option value="">👥 Cualquiera</option>
-          {filtrados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+          {filtrados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
         </select>
 
         <select value={form.prioridad}
