@@ -11,13 +11,13 @@ import DescartarModal from '../components/DescartarModal';
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tienda, setTienda] = useState<'mujer' | 'hombre'>('mujer');
+  const [tienda, setTienda] = useState<'mujer' | 'hombre' | 'web'>('mujer'); // <-- Agregamos 'web'
   const [estado, setEstado] = useState<'todas' | 'pendiente' | 'completada' | 'vencida' | 'descartada'>('todas');
   const [posponer, setPosponer] = useState<Task | null>(null);
   const [descartar, setDescartar] = useState<Task | null>(null);
 
   async function load() {
-    let q = supabase.from('tasks').select('*').eq('tienda', tienda);
+    let q = supabase.from('tasks').select('*, profiles:asignado_a(nombre,email)').eq('tienda', tienda);
     if (estado !== 'todas') q = q.eq('estado', estado);
     const { data } = await q.order('fecha_limite', { ascending: true });
     setTasks(data ?? []);
@@ -55,6 +55,10 @@ export default function AdminDashboard() {
             <button onClick={() => setTienda('hombre')}
               className={`px-3 py-1.5 rounded-lg text-sm border ${tienda === 'hombre' ? 'bg-black text-white' : 'bg-white border-gray-300'}`}>
               Tienda Hombre
+            </button>
+            <button onClick={() => setTienda('web')}
+              className={`px-3 py-1.5 rounded-lg text-sm border ${tienda === 'web' ? 'bg-black text-white' : 'bg-white border-gray-300'}`}>
+              🌐 Página Web
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
