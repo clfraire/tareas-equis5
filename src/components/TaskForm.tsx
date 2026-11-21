@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Empleado, Tienda, Prioridad, Frecuencia } from '../lib/types';
+import { addHours, addDays, setHours, setMinutes, format } from 'date-fns';
 
 export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
@@ -14,15 +15,31 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Trae a TODAS las empleadas sin importar la tienda
     supabase.from('empleados').select('*').then(({ data }) => setEmpleados(data ?? []));
   }, []);
+
+  // Función para setear fechas rápido
+  const setQuickDate = (tipo: '1h' | '2h' | 'manana' | 'semana') => {
+    let date = new Date();
+    if (tipo === '1h') date = addHours(date, 1);
+    if (tipo === '2h') date = addHours(date, 2);
+    if (tipo === 'manana') {
+      date = addDays(date, 1);
+      date = setHours(date, 10); // Mañana a las 10 AM
+      date = setMinutes(date, 0);
+    }
+    if (tipo === 'semana') {
+      date = addDays(date, 7);
+      date = setHours(date, 10);
+      date = setMinutes(date, 0);
+    }
+    setForm({ ...form, fecha_limite: format(date, "yyyy-MM-dd'T'HH:mm") });
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setError('');
     
-    // Si es web, no guardamos nombre de asignada
     const nombreAsignada = form.tienda === 'web' ? null : (form.asignado_nombre || null);
 
     const { error } = await supabase.from('tasks').insert({
@@ -46,7 +63,7 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
       <h2 className="font-bold text-lg">Nueva tarea</h2>
       {error && <div className="bg-red-50 text-red-700 text-sm p-2 rounded">{error}</div>}
 
-      <input required placeholder="Título" value={form.titulo}
+      <input required placeholder="Título de la tarea" value={form.titulo}
         onChange={e => setForm({ ...form, titulo: e.target.value })}
         className="w-full border border-gray-300 rounded-lg p-3" />
 
@@ -63,7 +80,6 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
           <option value="web">Página Web</option>
         </select>
 
-        {/* Si es WEB, mostramos un texto fijo. Si no, el desplegable con TODAS las chicas */}
         {form.tienda === 'web' ? (
           <div className="border border-gray-200 bg-gray-50 rounded-lg p-3 text-sm text-gray-500 flex items-center">
             👥 Cualquiera (Web)
@@ -79,30 +95,50 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
 
         <select value={form.prioridad}
           onChange={e => setForm({ ...form, prioridad: e.target.value as Prioridad })}
-          className="border border-gray-300 rounded-lg p-3">
-          <option value="normal">⚫ Normal</option>
-          <option value="urgente">🔴 Urgente</option>
+          className="border border-gray-300 rounded-lg p-3 col-span-2 font-medium">
+          <option value="normal">⚫ Prioridad Normal</option>
+          <option value="urgente">🔴 Prioridad URGENTE</option>
         </select>
 
         <select value={form.frecuencia}
           onChange={e => setForm({ ...form, frecuencia: e.target.value as Frecuencia })}
-          className="border border-gray-300 rounded-lg p-3">
-          <option value="hora">Por hora</option>
-          <option value="dia">Por día</option>
-          <option value="semana">Por semana</option>
+          className="border border-gray-300 rounded-lg p-3 col-span-2">
+          <option value="hora">Frecuencia: Por Hora</option>
+          <option value="dia">Frecuencia: Por Día</option>
+          <option value="semana">Frecuencia: Por Semana</option>
         </select>
+      </div>
 
+      <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Fecha y hora límite:</label>
         <input required type="datetime-local" value={form.fecha_limite}
           onChange={e => setForm({ ...form, fecha_limite: e.target.value })}
-          className="border border-gray-300 rounded-lg p-3 col-span-2" />
+          className="w-full border border-gray-300 rounded-lg p-3 bg-white" />
+        
+        <div className="flex flex-wrap gap-1 mt-1">
+          <button type="button" onClick={() => setQuickDate('1h')} className="text-xs bg-white border border-gray-300 rounded px-2 py-1 hover:bg-gray-100">+1 Hora</button>
+          <button type="button" onClick={() => setQuickDate('2h')} className="text-xs bg-white border border-gray-300 rounded px-2 py-1 hover:bg-gray-100">+2 Horas</button>
+          <button type="button" onClick={() => setQuickDate('manana')} className="text-xs bg-white border border-gray-300 rounded px-2 py-1 hover:bg-gray-100">Mañana 10 AM</button>
+          <button type="button" onClick={() => setQuickDate('semana')} className="text-xs bg-white border border-gray-300 rounded px-2 py-1 hover:bg-gray-100">En 1 semana</button>
+        </div>
+      </div>
 
-        <input type="number" min={1} placeholder="Tiempo estimado (min)" value={form.tiempo_estimado}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo estimado de realización:</label>
+        <select value={form.tiempo_estimado}
           onChange={e => setForm({ ...form, tiempo_estimado: Number(e.target.value) })}
-          className="border border-gray-300 rounded-lg p-3 col-span-2" />
+          className="w-full border border-gray-300 rounded-lg p-3">
+          <option value={15}>15 minutos</option>
+          <option value={30}>30 minutos</option>
+          <option value={45}>45 minutos</option>
+          <option value={60}>1 hora</option>
+          <option value={120}>2 horas</option>
+          <option value={180}>3 horas</option>
+        </select>
       </div>
 
       <button disabled={saving}
-        className="w-full bg-black text-white rounded-lg p-3 font-semibold hover:bg-gray-800 disabled:opacity-50">
+        className="w-full bg-black text-white rounded-lg p-3 font-semibold hover:bg-gray-800 disabled:opacity-50 mt-2">
         {saving ? 'Guardando…' : 'Crear tarea'}
       </button>
     </form>
