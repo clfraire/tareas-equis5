@@ -8,17 +8,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           
-          {/* ACÁ ESTÁ EL LOGO Y EL TÍTULO NUEVO */}
           <div className="flex items-center gap-4">
-            <img 
-              src="/logo.png" 
-              alt="Logo Equis5" 
-              className="h-14 w-auto object-contain" 
-            />
+            {/* Contenedor del logo con respaldo por si falla la imagen */}
+            <div className="h-14 w-14 bg-black rounded-lg flex items-center justify-center overflow-hidden shrink-0">
+               <img 
+                 src="/logo.png" 
+                 alt="Logo" 
+                 className="h-full w-full object-cover" 
+                 onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+               />
+               <span className="text-white font-bold absolute text-xl">E5</span>
+            </div>
+
             <div className="flex flex-col">
-              <h1 className="text-2xl font-extrabold text-black tracking-tight leading-none mb-1">
+              <h1 className="text-3xl font-black text-black tracking-tighter leading-none mb-1">
                 Tareas de Equis5
               </h1>
               <p className="text-sm text-gray-500 font-medium">
