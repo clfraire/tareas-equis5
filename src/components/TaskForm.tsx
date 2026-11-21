@@ -36,7 +36,8 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
     onCreated();
   }
 
-  const filtrados = empleados.filter(e => e.tienda === form.tienda);
+  // Filtra las empleadas según la tienda seleccionada
+  const filtrados = empleados.filter(e => e.tienda === form.tienda || e.tienda === null);
 
   return (
     <form onSubmit={submit} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 space-y-3">
@@ -57,6 +58,7 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
           className="border border-gray-300 rounded-lg p-3">
           <option value="mujer">Tienda Mujer</option>
           <option value="hombre">Tienda Hombre</option>
+          <option value="web">Página Web</option> {/* <-- Nueva opción */}
         </select>
 
         <select value={form.asignado_a}
