@@ -32,6 +32,13 @@ export default function EmpleadoDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [profile, frecuencia]);
 
+    useEffect(() => {
+    const interval = setInterval(async () => {
+      await supabase.rpc('marcar_tareas_vencidas');
+      load();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [profile, frecuencia]);
   // RELOJ AUTOMÁTICO: Revisa cada 60 segundos si hay tareas vencidas
   useEffect(() => {
     const interval = setInterval(async () => {
