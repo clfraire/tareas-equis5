@@ -1,5 +1,5 @@
 export type Rol = 'admin' | 'empleado';
-export type Tienda = 'mujer' | 'hombre';
+export type Tienda = 'mujer' | 'hombre' | 'web'; // <-- Agregamos 'web' acá
 export type Prioridad = 'urgente' | 'normal';
 export type Frecuencia = 'hora' | 'dia' | 'semana';
 export type Estado = 'pendiente' | 'completada' | 'vencida' | 'descartada';
