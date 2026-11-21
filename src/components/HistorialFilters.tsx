@@ -55,7 +55,6 @@ export default function HistorialFilters({
               <select value={filtros.empleado} onChange={e => set('empleado', e.target.value)} className="input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                 <option value="todos">Todos</option>
                 <option value="cualquiera">Cualquiera</option>
-                {/* Acá mostramos SIEMPRE a todos los empleados, sin importar la tienda elegida arriba */}
                 {empleados.map(e => (
                   <option key={e.id} value={e.id}>{e.nombre}</option>
                 ))}
@@ -79,6 +78,16 @@ export default function HistorialFilters({
                 <option value="todas">Todas</option>
                 <option value="urgente">🔴 Urgente</option>
                 <option value="normal">⚫ Normal</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-xs text-gray-500 mb-1 block">Frecuencia</span>
+              <select value={filtros.frecuencia} onChange={e => set('frecuencia', e.target.value)} className="input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="todas">Todas</option>
+                <option value="hora">Tarea Específica</option>
+                <option value="dia">Tarea Diaria</option>
+                <option value="semana">Tarea Semanal</option>
               </select>
             </label>
 
