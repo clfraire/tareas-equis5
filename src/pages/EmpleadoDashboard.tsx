@@ -16,24 +16,23 @@ export default function EmpleadoDashboard() {
   const [posponer, setPosponer] = useState<Task | null>(null);
   const [descartar, setDescartar] = useState<Task | null>(null);
   
-  // Estado para el modal de completar
   const [completarTask, setCompletarTask] = useState<Task | null>(null);
   const [quienCompleto, setQuienCompleto] = useState('');
-  const [comentario, setComentario] = useState(''); // <-- NUEVO
+  const [comentario, setComentario] = useState('');
 
   async function load() {
     if (!profile) return;
     let q = supabase.from('tasks').select('*').eq('tienda', profile.tienda!);
     if (frecuencia !== 'todas') q = q.eq('frecuencia', frecuencia);
     
-    // ORDENAMIENTO: Primero Urgentes (descendente), luego por fecha (más próxima primero)
     const { data } = await q
       .order('prioridad', { ascending: false }) 
       .order('fecha_limite', { ascending: true });
       
     setTasks(data ?? []);
 
-    const { data: emp } = await supabase.from('empleados').select('*').eq('tienda', profile.tienda!);
+    // Trae a TODAS las empleadas para el modal de confirmación
+    const { data: emp } = await supabase.from('empleados').select('*');
     setEmpleados(emp ?? []);
   }
 
@@ -50,7 +49,7 @@ export default function EmpleadoDashboard() {
   function handleCompletarClick(task: Task) {
     setCompletarTask(task);
     setQuienCompleto('');
-    setComentario(''); // Limpiamos el comentario
+    setComentario('');
   }
 
   async function confirmarCompletada() {
@@ -59,7 +58,7 @@ export default function EmpleadoDashboard() {
       estado: 'completada',
       completada_por: profile?.id,
       completada_por_nombre: quienCompleto,
-      comentario_completado: comentario || null, // <-- Guardamos el comentario
+      comentario_completado: comentario || null,
       completada_en: new Date().toISOString(),
     }).eq('id', completarTask.id);
     
