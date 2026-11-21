@@ -17,12 +17,15 @@ export default function EmpleadoDashboard() {
 
   async function load() {
     if (!profile) return;
-    let q = supabase.from('tasks').select('*').eq('tienda', profile.tienda!);
+    // Buscamos: Tareas de mi tienda (sin asignar) O Tareas asignadas a mi directamente
+    let q = supabase.from('tasks').select('*')
+      .or(`and(tienda.eq.${profile.tienda},asignado_a.is.null),asignado_a.eq.${profile.id}`);
+
     if (frecuencia !== 'todas') q = q.eq('frecuencia', frecuencia);
     if (estado !== 'todas') q = q.eq('estado', estado);
     
     const { data } = await q.order('fecha_limite', { ascending: true });
-    setTasks((data ?? []).filter(t => t.asignado_a === null || t.asignado_a === profile.id));
+    setTasks(data ?? []);
   }
 
   useEffect(() => { load(); }, [profile, frecuencia, estado]);
@@ -57,7 +60,6 @@ export default function EmpleadoDashboard() {
   return (
     <Layout>
       <div className="space-y-4 mb-4">
-        {/* Filtros por Frecuencia */}
         <div>
           <p className="text-xs text-gray-500 mb-2">Frecuencia:</p>
           <div className="flex flex-wrap gap-2">
@@ -70,7 +72,6 @@ export default function EmpleadoDashboard() {
           </div>
         </div>
 
-        {/* Filtros por Estado */}
         <div>
           <p className="text-xs text-gray-500 mb-2">Estado:</p>
           <div className="flex flex-wrap gap-2">
@@ -89,7 +90,7 @@ export default function EmpleadoDashboard() {
           <TaskCard key={t.id} task={t} currentUserId={profile?.id ?? ''}
             onCompletar={completar} onPosponer={setPosponer} onDescartar={setDescartar} />
         ))}
-        {tasks.length === 0 && <p className="text-center text-gray-400 py-8">No hay tareas que coincidan.</p>}
+        {tasks.length === 0 && <p className="text-center text-gray-400 py-8">No hay tareas asignadas.</p>}
       </div>
 
       {posponer && (
