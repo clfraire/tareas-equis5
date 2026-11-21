@@ -19,24 +19,28 @@ const ESTADO_BADGE: Record<string, string> = {
 
 export default function TaskCard({ task, currentUserId, onCompletar, onPosponer, onDescartar }: Props) {
   const isCompletada = task.estado === 'completada';
-  const isVencida = task.estado === 'vencida';
   const isDescartada = task.estado === 'descartada';
+  
+  // Magia acá: si la fecha límite ya pasó, la tratamos como vencida inmediatamente
+  const isTimeUp = new Date(task.fecha_limite).getTime() < new Date().getTime();
+  const isVencida = task.estado === 'vencida' || (task.estado === 'pendiente' && isTimeUp);
+  
+  // Para el cartelito de arriba
+  const displayEstado = isVencida ? 'vencida' : task.estado;
 
   const colorBase = isCompletada
     ? 'border-green-500 bg-green-50'
     : isDescartada
     ? 'border-gray-300 bg-gray-100 opacity-70'
-    : task.prioridad === 'urgente'
+    : task.prioridad === 'urgente' || (isVencida && !isCompletada)
     ? 'border-red-500 bg-red-50'
     : 'border-gray-800 bg-white';
 
-  const textColor = task.prioridad === 'urgente' && !isCompletada && !isDescartada ? 'text-red-700' : 'text-black';
-  
-  // Permitimos que cualquiera la complete si no tiene nombre asignado
+  const textColor = (task.prioridad === 'urgente' || isVencida) && !isCompletada && !isDescartada ? 'text-red-700' : 'text-black';
   const canAct = !isCompletada && !isDescartada;
 
   return (
-    <div className={`rounded-xl border-l-4 border p-4 shadow-sm transition ${colorBase} ${isVencida ? 'animate-pulse ring-2 ring-red-400' : ''}`}>
+    <div className={`rounded-xl border-l-4 border p-4 shadow-sm transition ${colorBase} ${isVencida && !isCompletada ? 'animate-pulse ring-2 ring-red-400' : ''}`}>
       <div className="flex justify-between items-start gap-2">
         <div>
           <h3 className={`font-bold ${textColor}`}>{task.titulo}</h3>
@@ -46,8 +50,8 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
           <span className="text-xs px-2 py-0.5 rounded-full bg-black/5 whitespace-nowrap font-semibold">
             {task.prioridad === 'urgente' ? '🔴 Urgente' : '⚫ Normal'}
           </span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ESTADO_BADGE[task.estado]}`}>
-            {task.estado}
+          <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ESTADO_BADGE[displayEstado]}`}>
+            {displayEstado}
           </span>
         </div>
       </div>
@@ -55,8 +59,6 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
       <div className="mt-3 text-xs text-gray-600 space-y-1">
         <p>📅 Vence: {format(new Date(task.fecha_limite), "PPp", { locale: es })}</p>
         <p>🏬 Tienda: {task.tienda} · 🔁 {task.frecuencia}</p>
-        
-        {/* ACÁ ESTÁ LA MAGIA: Ahora lee el asignado_nombre */}
         <p>👤 Asignada a: <span className="font-semibold text-black">{task.asignado_nombre ? task.asignado_nombre : 'Cualquiera'}</span></p>
         
         {isCompletada && task.completada_por_nombre && (
