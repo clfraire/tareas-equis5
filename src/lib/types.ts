@@ -16,7 +16,7 @@ export interface Profile {
 export interface Empleado {
   id: string;
   nombre: string;
-  tienda: Tienda;
+  // Ya no tiene la propiedad 'tienda' porque ahora son globales
 }
 
 export interface Task {
