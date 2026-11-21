@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Profile, Tienda, Estado, Prioridad, Frecuencia } from '../lib/types';
+import type { Empleado, Tienda, Estado, Prioridad, Frecuencia } from '../lib/types';
 
 export interface Filtros {
   tienda: 'todas' | Tienda;
@@ -17,7 +17,7 @@ export default function HistorialFilters({
 }: {
   filtros: Filtros;
   setFiltros: (f: Filtros) => void;
-  empleados: Profile[];
+  empleados: Empleado[];
   onReset: () => void;
 }) {
   const [open, setOpen] = useState(true);
@@ -56,7 +56,7 @@ export default function HistorialFilters({
                 <option value="todos">Todos</option>
                 <option value="cualquiera">Cualquiera</option>
                 {empleados.map(e => (
-                  <option key={e.id} value={e.id}>{e.nombre}</option>
+                  <option key={e.id} value={e.nombre}>{e.nombre}</option>
                 ))}
               </select>
             </label>
