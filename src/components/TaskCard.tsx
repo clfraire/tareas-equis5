@@ -24,6 +24,8 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
     : 'border-gray-800 bg-white';
 
   const textColor = task.prioridad === 'urgente' && !isCompletada && !isDescartada ? 'text-red-700' : 'text-black';
+  
+  // Puede actuar si no está completada ni descartada
   const canAct = !isCompletada && !isDescartada;
 
   return (
@@ -63,13 +65,10 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
 
       {canAct && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => onCompletar(task)} className="text-sm bg-green-600 text-white rounded-lg px-3 py-1.5 hover:bg-green-700">✅ Confirmar realizada</button>
-          {isVencida && (
-            <>
-              <button onClick={() => onPosponer(task)} className="text-sm bg-yellow-500 text-white rounded-lg px-3 py-1.5 hover:bg-yellow-600">⏰ Posponer</button>
-              <button onClick={() => onDescartar(task)} className="text-sm bg-gray-700 text-white rounded-lg px-3 py-1.5 hover:bg-gray-800">🚫 Descartar</button>
-            </>
-          )}
+          <button onClick={() => onCompletar(task)} className="text-sm bg-green-600 text-white rounded-lg px-3 py-1.5 hover:bg-green-700 transition">✅ Confirmar realizada</button>
+          {/* Los botones de posponer y anular ahora aparecen SIEMPRE que la tarea esté activa */}
+          <button onClick={() => onPosponer(task)} className="text-sm bg-yellow-500 text-white rounded-lg px-3 py-1.5 hover:bg-yellow-600 transition">⏰ Posponer</button>
+          <button onClick={() => onDescartar(task)} className="text-sm bg-gray-700 text-white rounded-lg px-3 py-1.5 hover:bg-gray-800 transition">🚫 Anular</button>
         </div>
       )}
     </div>
