@@ -46,6 +46,7 @@ export default function HistorialFilters({
                 <option value="todas">Todas</option>
                 <option value="mujer">Mujer</option>
                 <option value="hombre">Hombre</option>
+                <option value="web">Web</option>
               </select>
             </label>
 
