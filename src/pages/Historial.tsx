@@ -47,6 +47,19 @@ export default function Historial() {
     return q;
   };
 
+  const loadData = async () => {
+    setLoading(true);
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data, count, error } = await buildQuery({ count: 'exact' })
+      .order('fecha_limite', { ascending: false }).range(from, to);
+    if (!error) { 
+      setTasks(data ?? []); 
+      setCount(count ?? 0); 
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -62,6 +75,12 @@ export default function Historial() {
     })();
     return () => { cancelled = true; };
   }, [filtros, page]);
+
+  // Función para eliminar una tarea (y su historial por cascada en la BD)
+  async function handleDelete(id: string) {
+    await supabase.from('tasks').delete().eq('id', id);
+    loadData(); // Recargamos la lista
+  }
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
@@ -79,7 +98,7 @@ export default function Historial() {
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           {loading && <div className="p-8 text-center text-gray-400 text-sm">Cargando...</div>}
           {!loading && tasks.length === 0 && <div className="p-12 text-center text-gray-400">No hay tareas que coincidan.</div>}
-          {!loading && tasks.map(t => <HistorialRow key={t.id} task={t} />)}
+          {!loading && tasks.map(t => <HistorialRow key={t.id} task={t} onDelete={handleDelete} />)}
         </div>
 
         <div className="flex items-center justify-between text-sm pb-8">
