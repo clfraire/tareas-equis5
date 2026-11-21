@@ -16,19 +16,23 @@ export default function EmpleadoDashboard() {
   const [posponer, setPosponer] = useState<Task | null>(null);
   const [descartar, setDescartar] = useState<Task | null>(null);
   
-  // Estado para el modal de "¿Quién la hizo?"
+  // Estado para el modal de completar
   const [completarTask, setCompletarTask] = useState<Task | null>(null);
   const [quienCompleto, setQuienCompleto] = useState('');
+  const [comentario, setComentario] = useState(''); // <-- NUEVO
 
   async function load() {
     if (!profile) return;
-    // Carga las tareas de su tienda
     let q = supabase.from('tasks').select('*').eq('tienda', profile.tienda!);
     if (frecuencia !== 'todas') q = q.eq('frecuencia', frecuencia);
-    const { data } = await q.order('fecha_limite', { ascending: true });
+    
+    // ORDENAMIENTO: Primero Urgentes (descendente), luego por fecha (más próxima primero)
+    const { data } = await q
+      .order('prioridad', { ascending: false }) 
+      .order('fecha_limite', { ascending: true });
+      
     setTasks(data ?? []);
 
-    // Carga la lista de empleadas de su tienda para el modal
     const { data: emp } = await supabase.from('empleados').select('*').eq('tienda', profile.tienda!);
     setEmpleados(emp ?? []);
   }
@@ -43,19 +47,19 @@ export default function EmpleadoDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [profile, frecuencia]);
 
-  // Cuando tocan "Confirmar" en la tarjeta
   function handleCompletarClick(task: Task) {
     setCompletarTask(task);
-    setQuienCompleto(''); // Resetea el dropdown
+    setQuienCompleto('');
+    setComentario(''); // Limpiamos el comentario
   }
 
-  // Cuando confirman en el modal
   async function confirmarCompletada() {
     if (!completarTask || !quienCompleto) return;
     await supabase.from('tasks').update({
       estado: 'completada',
       completada_por: profile?.id,
-      completada_por_nombre: quienCompleto, // Guarda el nombre de la chica
+      completada_por_nombre: quienCompleto,
+      comentario_completado: comentario || null, // <-- Guardamos el comentario
       completada_en: new Date().toISOString(),
     }).eq('id', completarTask.id);
     
@@ -84,15 +88,31 @@ export default function EmpleadoDashboard() {
       {/* MODAL PARA PREGUNTAR QUIÉN COMPLETÓ LA TAREA */}
       {completarTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
             <h2 className="text-lg font-bold">✅ Confirmar tarea</h2>
-            <p className="text-sm text-gray-600">{completarTask.titulo}</p>
-            <label className="block text-sm font-medium text-gray-700">¿Quién realizó esta tarea?</label>
-            <select value={quienCompleto} onChange={e => setQuienCompleto(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-3">
-              <option value="">Seleccioná tu nombre...</option>
-              {empleados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
-            </select>
+            <p className="text-sm text-gray-600 font-medium">{completarTask.titulo}</p>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">¿Quién realizó esta tarea?</label>
+              <select value={quienCompleto} onChange={e => setQuienCompleto(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg p-3">
+                <option value="">Seleccioná tu nombre...</option>
+                {empleados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Comentario (opcional)</label>
+              <textarea 
+                value={comentario} 
+                onChange={e => setComentario(e.target.value)}
+                maxLength={500}
+                placeholder="Ej: Faltaba stock, se avisó a Cintia. / Se hizo rápido."
+                className="w-full border border-gray-300 rounded-lg p-3 h-24 text-sm" 
+              />
+              <p className="text-xs text-gray-400 text-right mt-1">{comentario.length}/500 caracteres (aprox. 100 palabras)</p>
+            </div>
+
             <div className="flex gap-2 justify-end pt-2">
               <button onClick={() => setCompletarTask(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50">Cancelar</button>
               <button disabled={!quienCompleto} onClick={confirmarCompletada} className="px-4 py-2 text-sm rounded-lg bg-green-600 text-white disabled:opacity-50 hover:bg-green-700">Confirmar</button>
@@ -101,7 +121,6 @@ export default function EmpleadoDashboard() {
         </div>
       )}
 
-      {/* MODALES DE POSPONER Y DESCARTAR */}
       {posponer && (
         <PosponerModal task={posponer} onClose={() => setPosponer(null)}
           onConfirm={async (nueva) => {
