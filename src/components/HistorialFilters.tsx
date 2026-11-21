@@ -51,10 +51,11 @@ export default function HistorialFilters({
             </label>
 
             <label className="block">
-            <span className="text-xs text-gray-500 mb-1 block">Asignada A:</span>
+              <span className="text-xs text-gray-500 mb-1 block">Asignada A:</span>
               <select value={filtros.empleado} onChange={e => set('empleado', e.target.value)} className="input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                 <option value="todos">Todos</option>
                 <option value="cualquiera">Cualquiera</option>
+                {/* Acá mostramos SIEMPRE a todos los empleados, sin importar la tienda elegida arriba */}
                 {empleados.map(e => (
                   <option key={e.id} value={e.id}>{e.nombre}</option>
                 ))}
