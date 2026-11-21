@@ -13,6 +13,7 @@ export default function Historial() {
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const [filtros, setFiltros] = useState<Filtros>({
     tienda: 'todas', empleado: 'todos', estado: 'todas',
@@ -25,7 +26,10 @@ export default function Historial() {
     });
   }, []);
 
-  useEffect(() => { setPage(0); }, [filtros]);
+  useEffect(() => { 
+    setPage(0); 
+    setSelectedIds([]); // Limpiamos la selección al cambiar filtros
+  }, [filtros]);
 
   const buildQuery = (selectOpts: any = {}) => {
     let q = supabase.from('tasks').select('*', selectOpts);
@@ -71,22 +75,48 @@ export default function Historial() {
       if (!cancelled) {
         if (!error) { setTasks(data ?? []); setCount(count ?? 0); }
         setLoading(false);
+        setSelectedIds([]); // Limpiamos selección al cambiar de página
       }
     })();
     return () => { cancelled = true; };
   }, [filtros, page]);
 
-  // Función para eliminar una tarea (y su historial por cascada en la BD)
+  // Función para eliminar una tarea individual
   async function handleDelete(id: string) {
     await supabase.from('tasks').delete().eq('id', id);
-    loadData(); // Recargamos la lista
+    loadData();
   }
 
+  // Funciones para la selección múltiple
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === tasks.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(tasks.map(t => t.id));
+    }
+  };
+
+  // Función para borrar todas las seleccionadas
+  const handleBulkDelete = async () => {
+    const confirm = window.confirm(`¿Estás seguro que querés eliminar ${selectedIds.length} tarea(s)? Esta acción no se puede deshacer.`);
+    if (!confirm) return;
+    
+    setLoading(true);
+    await supabase.from('tasks').delete().in('id', selectedIds);
+    setSelectedIds([]);
+    await loadData();
+  };
+
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const allSelected = tasks.length > 0 && selectedIds.length === tasks.length;
 
   return (
     <Layout>
-      <div className="space-y-4">
+      <div className="space-y-4 pb-20">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-xl font-bold">📜 Historial de tareas</h1>
         </div>
@@ -96,9 +126,33 @@ export default function Historial() {
         />
 
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          
+          {/* Barra de "Seleccionar Todo" */}
+          {!loading && tasks.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 border-b border-gray-200">
+              <input 
+                type="checkbox" 
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 text-black rounded border-gray-300 focus:ring-black cursor-pointer" 
+              />
+              <span className="text-xs text-gray-600 font-medium cursor-pointer" onClick={toggleSelectAll}>
+                Seleccionar todo (esta página)
+              </span>
+            </div>
+          )}
+
           {loading && <div className="p-8 text-center text-gray-400 text-sm">Cargando...</div>}
           {!loading && tasks.length === 0 && <div className="p-12 text-center text-gray-400">No hay tareas que coincidan.</div>}
-          {!loading && tasks.map(t => <HistorialRow key={t.id} task={t} onDelete={handleDelete} />)}
+          {!loading && tasks.map(t => (
+            <HistorialRow 
+              key={t.id} 
+              task={t} 
+              onDelete={handleDelete} 
+              isSelected={selectedIds.includes(t.id)}
+              onToggleSelect={toggleSelect}
+            />
+          ))}
         </div>
 
         <div className="flex items-center justify-between text-sm pb-8">
@@ -109,6 +163,21 @@ export default function Historial() {
           </div>
         </div>
       </div>
+
+      {/* Barra flotante de eliminación múltiple */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-4 z-50 animate-in fade-in slide-in-from-bottom-4">
+          <span className="text-sm font-medium whitespace-nowrap">
+            {selectedIds.length} seleccionada(s)
+          </span>
+          <button onClick={handleBulkDelete} className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap flex items-center gap-2">
+            🗑️ Eliminar
+          </button>
+          <button onClick={() => setSelectedIds([])} className="text-gray-400 hover:text-white p-1" title="Cancelar selección">
+            ✕
+          </button>
+        </div>
+      )}
     </Layout>
   );
 }
