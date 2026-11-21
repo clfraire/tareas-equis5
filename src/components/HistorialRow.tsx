@@ -16,7 +16,17 @@ const PRIORIDAD_BADGE: Record<string, string> = {
   normal: 'bg-black text-white',
 };
 
-export default function HistorialRow({ task, onDelete }: { task: Task; onDelete: (id: string) => void; }) {
+export default function HistorialRow({ 
+  task, 
+  onDelete, 
+  isSelected, 
+  onToggleSelect 
+}: { 
+  task: Task; 
+  onDelete: (id: string) => void; 
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<any[] | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -30,10 +40,20 @@ export default function HistorialRow({ task, onDelete }: { task: Task; onDelete:
   }
 
   return (
-    <div className="border-b border-gray-100 last:border-0">
+    <div className={`border-b border-gray-100 last:border-0 transition-colors ${isSelected ? 'bg-blue-50/50' : ''}`}>
       <div className="w-full px-4 py-3 hover:bg-gray-50 transition">
         <div className="flex items-start justify-between gap-3">
           
+          {/* Checkbox para seleccionar */}
+          <div className="pt-1">
+            <input 
+              type="checkbox" 
+              checked={isSelected} 
+              onChange={() => onToggleSelect(task.id)}
+              className="w-5 h-5 text-black rounded border-gray-300 focus:ring-black cursor-pointer" 
+            />
+          </div>
+
           <button onClick={toggle} className="min-w-0 flex-1 text-left">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${PRIORIDAD_BADGE[task.prioridad]}`}>
@@ -79,7 +99,7 @@ export default function HistorialRow({ task, onDelete }: { task: Task; onDelete:
       </div>
 
       {open && (
-        <div className="px-4 pb-4 bg-gray-50/60">
+        <div className="px-4 pb-4 bg-gray-50/60 pl-12">
           <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Línea de tiempo</p>
           {history === null && <p className="text-xs text-gray-400">Cargando...</p>}
           {history && history.length === 0 && <p className="text-xs text-gray-400">Sin eventos registrados.</p>}
