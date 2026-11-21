@@ -41,9 +41,9 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
       <div className="mt-3 text-xs text-gray-600 space-y-1">
         <p>📅 Vence: {format(new Date(task.fecha_limite), "PPp", { locale: es })}</p>
         <p>🏬 Tienda: {task.tienda} · 🔁 {task.frecuencia}</p>
-        <p>👤 Asignada a: {task.asignado_a ? 'empleado específico' : 'Cualquiera'}</p>
+        <p>👤 Asignada a: {task.asignado_nombre ? task.asignado_nombre : 'Cualquiera'}</p>
         {isCompletada && task.completada_en && (
-          <p className="text-green-700 font-semibold">✅ Completada</p>
+          <p className="text-green-700 font-semibold">✅ Completada por {task.completada_por_nombre || 'Alguien'}</p>
         )}
         {isDescartada && task.motivo_descarte && (
           <p className="text-gray-700">🚫 Motivo: {task.motivo_descarte}</p>
