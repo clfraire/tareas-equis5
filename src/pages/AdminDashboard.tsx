@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import type { Task } from '../lib/types';
@@ -11,65 +11,35 @@ import DescartarModal from '../components/DescartarModal';
 export default function AdminDashboard() {
   const { profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [tienda, setTienda] = useState<'mujer' | 'hombre' | 'web'>('mujer');
-  
-  const [mainTab, setMainTab] = useState<'pendientes' | 'completadas'>('pendientes');
-  const [subTab, setSubTab] = useState<string>('todas');
-
+  const [tienda, setTienda] = useState<'mujer' | 'hombre'>('mujer');
+  const [estado, setEstado] = useState<'todas' | 'pendiente' | 'completada' | 'vencida' | 'descartada'>('todas');
   const [posponer, setPosponer] = useState<Task | null>(null);
   const [descartar, setDescartar] = useState<Task | null>(null);
-  
-  const alertedTasks = useRef(new Set<string>());
 
   async function load() {
-    let q = supabase.from('tasks').select('*, profiles:asignado_a(nombre,email)').eq('tienda', tienda);
-    const { data } = await q.order('prioridad', { ascending: false }).order('fecha_limite', { ascending: true });
+    let q = supabase.from('tasks').select('*').eq('tienda', tienda);
+    if (estado !== 'todas') q = q.eq('estado', estado);
+    const { data } = await q.order('fecha_limite', { ascending: true });
     setTasks(data ?? []);
   }
 
-  useEffect(() => { load(); }, [tienda]);
+  useEffect(() => { load(); }, [tienda, estado]);
 
-  // REALTIME Y AUTO-REFRESCO
   useEffect(() => {
     const channel = supabase.channel('tasks-admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, load)
       .subscribe();
-    const interval = setInterval(load, 30000);
-    return () => { supabase.removeChannel(channel); clearInterval(interval); };
-  }, [tienda]);
+    return () => { supabase.removeChannel(channel); };
+  }, [tienda, estado]);
 
-  // SONIDO ALERTA (10, 5, 2 min) - SONIDO MAS FUERTE
+  // RELOJ AUTOMÁTICO: Revisa cada 60 segundos si hay tareas vencidas
   useEffect(() => {
-    const checkDeadlines = () => {
-      const now = new Date().getTime();
-      tasks.forEach(task => {
-        if (task.estado === 'pendiente') {
-          const deadline = new Date(task.fecha_limite).getTime();
-          const diffMs = deadline - now;
-          const diffMins = diffMs / 60000; // Diferencia en minutos
-
-          if (diffMins > 0) {
-            let alertKey = null;
-            // Lógica para 10, 5 y 2 minutos
-            if (diffMins <= 2) alertKey = `${task.id}-2`;
-            else if (diffMins <= 5) alertKey = `${task.id}-5`;
-            else if (diffMins <= 10) alertKey = `${task.id}-10`;
-
-            if (alertKey && !alertedTasks.current.has(alertKey)) {
-              alertedTasks.current.add(alertKey);
-              
-              // Sonido de alarma más fuerte
-              const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
-              audio.volume = 1.0; // Volumen al máximo
-              audio.play().catch(e => console.log('Audio bloqueado por el navegador', e));
-            }
-          }
-        }
-      });
-    };
-    const interval = setInterval(checkDeadlines, 15000); // Revisa cada 15 segundos
+    const interval = setInterval(async () => {
+      await supabase.rpc('marcar_tareas_vencidas');
+      load();
+    }, 60000);
     return () => clearInterval(interval);
-  }, [tasks]);
+  }, [tienda, estado]);
 
   async function completar(task: Task) {
     await supabase.from('tasks').update({
@@ -79,72 +49,37 @@ export default function AdminDashboard() {
     load();
   }
 
-  const filteredTasks = tasks.filter(t => {
-    if (mainTab === 'pendientes') {
-      if (t.estado !== 'pendiente' && t.estado !== 'vencida') return false;
-      if (subTab === 'normales') return t.prioridad === 'normal';
-      if (subTab === 'urgentes') return t.prioridad === 'urgente' && (t.frecuencia === 'hora' || t.frecuencia === 'dia');
-      return true;
-    } else {
-      if (t.estado === 'pendiente') return false;
-      if (subTab === 'exitosas') return t.estado === 'completada';
-      if (subTab === 'vencidas') return t.estado === 'vencida';
-      if (subTab === 'anuladas') return t.estado === 'descartada';
-      return true;
-    }
-  });
-
   return (
     <Layout>
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <TaskForm onCreated={load} />
         </div>
-        
         <div className="lg:col-span-2 space-y-4">
           <div className="flex flex-wrap gap-2">
-            {(['mujer', 'hombre', 'web'] as const).map(t => (
-              <button key={t} onClick={() => { setTienda(t); setMainTab('pendientes'); setSubTab('todas'); }}
-                className={`px-3 py-1.5 rounded-lg text-sm border capitalize ${tienda === t ? 'bg-black text-white' : 'bg-white border-gray-300'}`}>
-                {t === 'web' ? '🌐 Página Web' : `Tienda ${t}`}
+            <button onClick={() => setTienda('mujer')}
+              className={`px-3 py-1.5 rounded-lg text-sm border ${tienda === 'mujer' ? 'bg-black text-white' : 'bg-white border-gray-300'}`}>
+              Tienda Mujer
+            </button>
+            <button onClick={() => setTienda('hombre')}
+              className={`px-3 py-1.5 rounded-lg text-sm border ${tienda === 'hombre' ? 'bg-black text-white' : 'bg-white border-gray-300'}`}>
+              Tienda Hombre
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['todas','pendiente','completada','vencida','descartada'] as const).map(e => (
+              <button key={e} onClick={() => setEstado(e)}
+                className={`px-3 py-1 rounded-lg text-xs border capitalize ${estado === e ? 'bg-gray-800 text-white' : 'bg-white border-gray-300'}`}>
+                {e}
               </button>
             ))}
           </div>
-
-          <div className="flex border-b border-gray-300">
-            <button onClick={() => { setMainTab('pendientes'); setSubTab('todas'); }}
-              className={`px-4 py-2 font-bold ${mainTab === 'pendientes' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>
-              Pendientes
-            </button>
-            <button onClick={() => { setMainTab('completadas'); setSubTab('todas'); }}
-              className={`px-4 py-2 font-bold ${mainTab === 'completadas' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>
-              Completadas
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {mainTab === 'pendientes' ? (
-              <>
-                <button onClick={() => setSubTab('todas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>Todas</button>
-                <button onClick={() => setSubTab('normales')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'normales' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>⚫ Normales</button>
-                <button onClick={() => setSubTab('urgentes')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'urgentes' ? 'bg-red-600 text-white border-red-600' : 'bg-red-50 text-red-700'}`}>🔴 Urgentes</button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => setSubTab('todas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>Todas</button>
-                <button onClick={() => setSubTab('exitosas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'exitosas' ? 'bg-green-600 text-white' : 'bg-green-50'}`}>✅ Exitosas</button>
-                <button onClick={() => setSubTab('vencidas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'vencidas' ? 'bg-orange-600 text-white' : 'bg-orange-50'}`}>⏰ Vencidas</button>
-                <button onClick={() => setSubTab('anuladas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'anuladas' ? 'bg-gray-600 text-white' : 'bg-gray-100'}`}>🚫 Anuladas</button>
-              </>
-            )}
-          </div>
-
           <div className="grid gap-3">
-            {filteredTasks.map(t => (
+            {tasks.map(t => (
               <TaskCard key={t.id} task={t} currentUserId={profile?.id ?? ''}
                 onCompletar={completar} onPosponer={setPosponer} onDescartar={setDescartar} />
             ))}
-            {filteredTasks.length === 0 && <p className="text-center text-gray-400 py-8">No hay tareas en esta categoría.</p>}
+            {tasks.length === 0 && <p className="text-center text-gray-400 py-8">Sin tareas.</p>}
           </div>
         </div>
       </div>
