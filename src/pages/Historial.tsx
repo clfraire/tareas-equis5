@@ -20,10 +20,10 @@ export default function Historial() {
     prioridad: 'todas', frecuencia: 'todas', desde: '', hasta: '', q: '',
   });
 
+  // Corrección: Trae absolutamente a todos los usuarios (menos tu admin principal)
   useEffect(() => {
-        supabase.from('profiles').select('*').then(({ data }) => {
+    supabase.from('profiles').select('*').then(({ data }) => {
       const arr = data ?? [];
-      // Trae a todos los usuarios menos tu cuenta de admin principal
       setEmpleados(arr.filter(p => p.email !== 'admin@equis5.com'));
       const map: Record<string, string> = {};
       arr.forEach(p => (map[p.id] = p.nombre));
