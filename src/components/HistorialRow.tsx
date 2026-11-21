@@ -16,9 +16,10 @@ const PRIORIDAD_BADGE: Record<string, string> = {
   normal: 'bg-black text-white',
 };
 
-export default function HistorialRow({ task }: { task: Task }) {
+export default function HistorialRow({ task, onDelete }: { task: Task; onDelete: (id: string) => void; }) {
   const [open, setOpen] = useState(false);
   const [history, setHistory] = useState<any[] | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function toggle() {
     setOpen(!open);
@@ -30,9 +31,10 @@ export default function HistorialRow({ task }: { task: Task }) {
 
   return (
     <div className="border-b border-gray-100 last:border-0">
-      <button onClick={toggle} className="w-full text-left px-4 py-3 hover:bg-gray-50 transition">
+      <div className="w-full px-4 py-3 hover:bg-gray-50 transition">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+          
+          <button onClick={toggle} className="min-w-0 flex-1 text-left">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${PRIORIDAD_BADGE[task.prioridad]}`}>
                 {task.prioridad === 'urgente' ? '🔴 Urgente' : '⚫ Normal'}
@@ -53,10 +55,28 @@ export default function HistorialRow({ task }: { task: Task }) {
             {task.estado === 'descartada' && task.motivo_descarte && (
               <p className="text-xs text-gray-600 mt-0.5">🚫 Motivo: {task.motivo_descarte}</p>
             )}
+          </button>
+
+          <div className="flex items-center gap-3">
+            {confirmDelete ? (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 px-2 py-1 rounded-lg">
+                <span className="text-xs text-red-700 font-bold">¿Borrar?</span>
+                <button onClick={() => onDelete(task.id)} className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">Sí</button>
+                <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 hover:text-black">No</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmDelete(true)} className="text-gray-400 hover:text-red-600 text-lg transition-colors" title="Eliminar del historial">
+                🗑️
+              </button>
+            )}
+            
+            <button onClick={toggle} className="text-gray-400 text-sm p-1">
+              {open ? '▲' : '▼'}
+            </button>
           </div>
-          <span className="text-gray-400 text-sm">{open ? '▲' : '▼'}</span>
+
         </div>
-      </button>
+      </div>
 
       {open && (
         <div className="px-4 pb-4 bg-gray-50/60">
