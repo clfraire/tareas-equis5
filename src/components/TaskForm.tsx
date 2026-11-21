@@ -14,8 +14,13 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Corrección: Trae a TODOS los perfiles y luego filtra solo a los empleados (evita que se pierdan)
   useEffect(() => {
-    supabase.from('profiles').select('*').eq('rol', 'empleado').then(({ data }) => setEmpleados(data ?? []));
+    supabase.from('profiles').select('*').then(({ data }) => {
+      const todos = data ?? [];
+      // Trae a todos los que NO sean tu cuenta principal
+      setEmpleados(todos.filter(p => p.email !== 'admin@equis5.com'));
+    });
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -51,11 +56,11 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
     if (type === '12:30') targetDate = setMinutes(setHours(now, 12), 30);
     if (type === '20:00') targetDate = setMinutes(setHours(now, 20), 0);
     
-    // Formateamos para que el input datetime-local lo entienda
     const formatted = format(targetDate, "yyyy-MM-dd'T'HH:mm");
     setForm({ ...form, fecha_limite: formatted });
   };
 
+  // Acá filtramos por la tienda seleccionada
   const filtrados = empleados.filter(e => e.tienda === form.tienda);
 
   return (
@@ -103,7 +108,6 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
         </select>
       </div>
 
-      {/* Botones rápidos de fecha */}
       <div className="pt-2">
         <p className="text-xs text-gray-500 mb-2">Rapidez de vencimiento:</p>
         <div className="flex flex-wrap gap-2 mb-3">
