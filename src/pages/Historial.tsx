@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Profile, Task } from '../lib/types';
+import type { Empleado, Task } from '../lib/types';
 import Layout from '../components/Layout';
 import HistorialFilters, { type Filtros } from '../components/HistorialFilters';
 import HistorialRow from '../components/HistorialRow';
@@ -9,8 +9,7 @@ const PAGE_SIZE = 30;
 
 export default function Historial() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [empleados, setEmpleados] = useState<Profile[]>([]);
-  const [profilesMap, setProfilesMap] = useState<Record<string, string>>({});
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -20,14 +19,10 @@ export default function Historial() {
     prioridad: 'todas', frecuencia: 'todas', desde: '', hasta: '', q: '',
   });
 
-  // Corrección: Trae absolutamente a todos los usuarios (menos tu admin principal)
+  // Traemos a los empleados de tu tabla real
   useEffect(() => {
-    supabase.from('profiles').select('*').then(({ data }) => {
-      const arr = data ?? [];
-      setEmpleados(arr.filter(p => p.email !== 'admin@equis5.com'));
-      const map: Record<string, string> = {};
-      arr.forEach(p => (map[p.id] = p.nombre));
-      setProfilesMap(map);
+    supabase.from('empleados').select('*').then(({ data }) => {
+      setEmpleados(data ?? []);
     });
   }, []);
 
@@ -35,11 +30,19 @@ export default function Historial() {
 
   const buildQuery = (selectOpts: any = {}) => {
     let q = supabase.from('tasks').select('*', selectOpts);
+    
     if (filtros.tienda !== 'todas') q = q.eq('tienda', filtros.tienda);
     if (filtros.estado !== 'todas') q = q.eq('estado', filtros.estado);
     if (filtros.prioridad !== 'todas') q = q.eq('prioridad', filtros.prioridad);
-    if (filtros.empleado === 'cualquiera') q = q.is('asignado_a', null);
-    else if (filtros.empleado !== 'todos') q = q.eq('asignado_a', filtros.empleado);
+    if (filtros.frecuencia !== 'todas') q = q.eq('frecuencia', filtros.frecuencia);
+    
+    // ACÁ EL CAMBIO: Filtramos por el nombre guardado en la tarea
+    if (filtros.empleado === 'cualquiera') {
+      q = q.is('asignado_nombre', null);
+    } else if (filtros.empleado !== 'todos') {
+      q = q.eq('asignado_nombre', filtros.empleado);
+    }
+    
     if (filtros.desde) q = q.gte('fecha_limite', new Date(filtros.desde).toISOString());
     if (filtros.hasta) q = q.lte('fecha_limite', new Date(filtros.hasta + 'T23:59:59').toISOString());
     if (filtros.q.trim()) q = q.ilike('titulo', `%${filtros.q.trim()}%`);
@@ -78,7 +81,7 @@ export default function Historial() {
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           {loading && <div className="p-8 text-center text-gray-400 text-sm">Cargando...</div>}
           {!loading && tasks.length === 0 && <div className="p-12 text-center text-gray-400">No hay tareas que coincidan.</div>}
-          {!loading && tasks.map(t => <HistorialRow key={t.id} task={t} profilesMap={profilesMap} />)}
+          {!loading && tasks.map(t => <HistorialRow key={t.id} task={t} />)}
         </div>
 
         <div className="flex items-center justify-between text-sm pb-8">
