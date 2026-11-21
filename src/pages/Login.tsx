@@ -25,14 +25,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-8 rounded-2xl shadow-md space-y-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg space-y-4 border border-gray-100">
         
-        {/* LOGO ACÁ */}
-        <img src="/logo.png" alt="Equis5 Logo" className="h-20 mx-auto object-contain mb-2" />
+        <img src="/logo.png" alt="Logo Equis5" className="h-24 mx-auto object-contain mb-2" />
         
-        <p className="text-center text-sm text-gray-500 pb-2">Ingresá con tu cuenta</p>
+        <h1 className="text-2xl font-extrabold text-center text-black tracking-tight mb-6">
+          Tareas de Equis5
+        </h1>
         
-        {error && <div className="bg-red-50 text-red-700 text-sm p-2 rounded text-center">{error}</div>}
+        {error && <div className="bg-red-50 text-red-700 text-sm p-2 rounded text-center font-medium">{error}</div>}
         
         <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required
           className="w-full border border-gray-300 rounded-lg p-3" />
