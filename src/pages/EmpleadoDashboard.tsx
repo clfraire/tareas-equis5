@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import type { Task, Empleado } from '../lib/types';
@@ -11,8 +11,10 @@ export default function EmpleadoDashboard() {
   const { profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [empleados, setEmpleados] = useState<Empleado[]>([]);
-  const [frecuencia, setFrecuencia] = useState<'todas' | 'hora' | 'dia' | 'semana'>('todas');
   
+  const [mainTab, setMainTab] = useState<'pendientes' | 'completadas'>('pendientes');
+  const [subTab, setSubTab] = useState<string>('todas');
+
   const [posponer, setPosponer] = useState<Task | null>(null);
   const [descartar, setDescartar] = useState<Task | null>(null);
   
@@ -20,31 +22,51 @@ export default function EmpleadoDashboard() {
   const [quienCompleto, setQuienCompleto] = useState('');
   const [comentario, setComentario] = useState('');
 
+  const alertedTasks = useRef(new Set<string>());
+
   async function load() {
     if (!profile) return;
-    let q = supabase.from('tasks').select('*').eq('tienda', profile.tienda!);
-    if (frecuencia !== 'todas') q = q.eq('frecuencia', frecuencia);
-    
-    const { data } = await q
+    const { data } = await supabase.from('tasks').select('*')
+      .eq('tienda', profile.tienda!)
       .order('prioridad', { ascending: false }) 
       .order('fecha_limite', { ascending: true });
-      
     setTasks(data ?? []);
 
-    // Trae a TODAS las empleadas para el modal de confirmación
     const { data: emp } = await supabase.from('empleados').select('*');
     setEmpleados(emp ?? []);
   }
 
-  useEffect(() => { load(); }, [profile, frecuencia]);
+  useEffect(() => { load(); }, [profile]);
 
+  // REALTIME Y AUTO-REFRESCO
   useEffect(() => {
     if (!profile) return;
     const channel = supabase.channel('tasks-emp')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, load)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [profile, frecuencia]);
+    const interval = setInterval(load, 30000);
+    return () => { supabase.removeChannel(channel); clearInterval(interval); };
+  }, [profile]);
+
+  // SONIDO ALERTA 10 MINUTOS
+  useEffect(() => {
+    const checkDeadlines = () => {
+      const now = new Date().getTime();
+      tasks.forEach(task => {
+        if (task.estado === 'pendiente') {
+          const deadline = new Date(task.fecha_limite).getTime();
+          const diff = deadline - now;
+          if (diff > 0 && diff <= 10 * 60 * 1000 && !alertedTasks.current.has(task.id)) {
+            alertedTasks.current.add(task.id);
+            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+            audio.play().catch(e => console.log('Audio bloqueado por el navegador', e));
+          }
+        }
+      });
+    };
+    const interval = setInterval(checkDeadlines, 30000);
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   function handleCompletarClick(task: Task) {
     setCompletarTask(task);
@@ -66,25 +88,67 @@ export default function EmpleadoDashboard() {
     load();
   }
 
+  // FILTRADO PARA PESTAÑAS
+  const filteredTasks = tasks.filter(t => {
+    if (mainTab === 'pendientes') {
+      if (t.estado !== 'pendiente' && t.estado !== 'vencida') return false;
+      if (subTab === 'normales') return t.prioridad === 'normal';
+      if (subTab === 'urgentes') return t.prioridad === 'urgente';
+      return true;
+    } else {
+      if (t.estado === 'pendiente') return false;
+      if (subTab === 'exitosas') return t.estado === 'completada';
+      if (subTab === 'vencidas') return t.estado === 'vencida';
+      if (subTab === 'anuladas') return t.estado === 'descartada';
+      return true;
+    }
+  });
+
   return (
     <Layout>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {(['todas','hora','dia','semana'] as const).map(f => (
-          <button key={f} onClick={() => setFrecuencia(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm border capitalize ${frecuencia === f ? 'bg-black text-white' : 'bg-white border-gray-300'}`}>
-            {f}
+      <div className="space-y-4">
+        
+        {/* Pestañas Principales */}
+        <div className="flex border-b border-gray-300">
+          <button onClick={() => { setMainTab('pendientes'); setSubTab('todas'); }}
+            className={`px-4 py-2 font-bold ${mainTab === 'pendientes' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>
+            Pendientes
           </button>
-        ))}
-      </div>
-      <div className="grid gap-3">
-        {tasks.map(t => (
-          <TaskCard key={t.id} task={t} currentUserId={profile?.id ?? ''}
-            onCompletar={handleCompletarClick} onPosponer={setPosponer} onDescartar={setDescartar} />
-        ))}
-        {tasks.length === 0 && <p className="text-center text-gray-400 py-8">No hay tareas asignadas.</p>}
+          <button onClick={() => { setMainTab('completadas'); setSubTab('todas'); }}
+            className={`px-4 py-2 font-bold ${mainTab === 'completadas' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>
+            Completadas
+          </button>
+        </div>
+
+        {/* Sub-Pestañas */}
+        <div className="flex flex-wrap gap-2">
+          {mainTab === 'pendientes' ? (
+            <>
+              <button onClick={() => setSubTab('todas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>Todas</button>
+              <button onClick={() => setSubTab('normales')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'normales' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>⚫ Normales</button>
+              <button onClick={() => setSubTab('urgentes')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'urgentes' ? 'bg-red-600 text-white border-red-600' : 'bg-red-50 text-red-700'}`}>🔴 Urgentes</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setSubTab('todas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'todas' ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>Todas</button>
+              <button onClick={() => setSubTab('exitosas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'exitosas' ? 'bg-green-600 text-white' : 'bg-green-50'}`}>✅ Exitosas</button>
+              <button onClick={() => setSubTab('vencidas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'vencidas' ? 'bg-orange-600 text-white' : 'bg-orange-50'}`}>⏰ Vencidas</button>
+              <button onClick={() => setSubTab('anuladas')} className={`px-3 py-1 text-xs rounded-full border ${subTab === 'anuladas' ? 'bg-gray-600 text-white' : 'bg-gray-100'}`}>🚫 Anuladas</button>
+            </>
+          )}
+        </div>
+
+        {/* Listado */}
+        <div className="grid gap-3">
+          {filteredTasks.map(t => (
+            <TaskCard key={t.id} task={t} currentUserId={profile?.id ?? ''}
+              onCompletar={handleCompletarClick} onPosponer={setPosponer} onDescartar={setDescartar} />
+          ))}
+          {filteredTasks.length === 0 && <p className="text-center text-gray-400 py-8">No hay tareas aquí.</p>}
+        </div>
       </div>
 
-      {/* MODAL PARA PREGUNTAR QUIÉN COMPLETÓ LA TAREA */}
+      {/* MODAL COMPLETAR */}
       {completarTask && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
@@ -102,14 +166,9 @@ export default function EmpleadoDashboard() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Comentario (opcional)</label>
-              <textarea 
-                value={comentario} 
-                onChange={e => setComentario(e.target.value)}
-                maxLength={500}
-                placeholder="Ej: Faltaba stock, se avisó a Cintia. / Se hizo rápido."
-                className="w-full border border-gray-300 rounded-lg p-3 h-24 text-sm" 
-              />
-              <p className="text-xs text-gray-400 text-right mt-1">{comentario.length}/500 caracteres (aprox. 100 palabras)</p>
+              <textarea value={comentario} onChange={e => setComentario(e.target.value)} maxLength={500}
+                placeholder="Ej: Faltaba stock. / Se hizo rápido."
+                className="w-full border border-gray-300 rounded-lg p-3 h-24 text-sm" />
             </div>
 
             <div className="flex gap-2 justify-end pt-2">
