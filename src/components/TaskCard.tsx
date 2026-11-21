@@ -10,6 +10,13 @@ interface Props {
   onDescartar: (task: Task) => void;
 }
 
+const ESTADO_BADGE: Record<string, string> = {
+  pendiente: 'bg-yellow-100 text-yellow-800',
+  completada: 'bg-green-600 text-white',
+  vencida: 'bg-red-600 text-white',
+  descartada: 'bg-gray-300 text-gray-800',
+};
+
 export default function TaskCard({ task, currentUserId, onCompletar, onPosponer, onDescartar }: Props) {
   const isCompletada = task.estado === 'completada';
   const isVencida = task.estado === 'vencida';
@@ -24,9 +31,7 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
     : 'border-gray-800 bg-white';
 
   const textColor = task.prioridad === 'urgente' && !isCompletada && !isDescartada ? 'text-red-700' : 'text-black';
-  
-  // Puede actuar si no está completada ni descartada
-  const canAct = !isCompletada && !isDescartada;
+  const canAct = !isCompletada && !isDescartada && (task.asignado_a === null || task.asignado_a === currentUserId);
 
   return (
     <div className={`rounded-xl border-l-4 border p-4 shadow-sm transition ${colorBase} ${isVencida ? 'animate-pulse ring-2 ring-red-400' : ''}`}>
@@ -35,29 +40,23 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
           <h3 className={`font-bold ${textColor}`}>{task.titulo}</h3>
           {task.descripcion && <p className="text-sm text-gray-600 mt-1">{task.descripcion}</p>}
         </div>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-black/5 whitespace-nowrap">
-          {task.prioridad === 'urgente' ? '🔴 Urgente' : '⚫ Normal'}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-black/5 whitespace-nowrap font-semibold">
+            {task.prioridad === 'urgente' ? '🔴 Urgente' : '⚫ Normal'}
+          </span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold ${ESTADO_BADGE[task.estado]}`}>
+            {task.estado}
+          </span>
+        </div>
       </div>
 
       <div className="mt-3 text-xs text-gray-600 space-y-1">
         <p>📅 Vence: {format(new Date(task.fecha_limite), "PPp", { locale: es })}</p>
         <p>🏬 Tienda: {task.tienda} · 🔁 {task.frecuencia}</p>
-        <p>👤 Asignada a: {task.asignado_nombre ? task.asignado_nombre : 'Cualquiera'}</p>
-        
+        <p>👤 Asignada a: {task.asignado_a ? 'empleado específico' : 'Cualquiera'}</p>
         {isCompletada && task.completada_en && (
-          <div className="mt-2 bg-white/60 p-2 rounded-lg border border-green-200">
-            <p className="text-green-700 font-semibold">
-              ✅ Completada por {task.completada_por_nombre || 'Alguien'}
-            </p>
-            {task.comentario_completado && (
-              <p className="text-gray-700 mt-1 italic text-xs">
-                💬 "{task.comentario_completado}"
-              </p>
-            )}
-          </div>
+          <p className="text-green-700 font-semibold mt-1">✅ Confirmada en la app</p>
         )}
-        
         {isDescartada && task.motivo_descarte && (
           <p className="text-gray-700 mt-1">🚫 Motivo: {task.motivo_descarte}</p>
         )}
@@ -65,10 +64,13 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
 
       {canAct && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <button onClick={() => onCompletar(task)} className="text-sm bg-green-600 text-white rounded-lg px-3 py-1.5 hover:bg-green-700 transition">✅ Confirmar realizada</button>
-          {/* Los botones de posponer y anular ahora aparecen SIEMPRE que la tarea esté activa */}
-          <button onClick={() => onPosponer(task)} className="text-sm bg-yellow-500 text-white rounded-lg px-3 py-1.5 hover:bg-yellow-600 transition">⏰ Posponer</button>
-          <button onClick={() => onDescartar(task)} className="text-sm bg-gray-700 text-white rounded-lg px-3 py-1.5 hover:bg-gray-800 transition">🚫 Anular</button>
+          <button onClick={() => onCompletar(task)} className="text-sm bg-green-600 text-white rounded-lg px-3 py-1.5 hover:bg-green-700 font-medium shadow-sm">✅ Confirmar realizada</button>
+          {isVencida && (
+            <>
+              <button onClick={() => onPosponer(task)} className="text-sm bg-yellow-500 text-white rounded-lg px-3 py-1.5 hover:bg-yellow-600 shadow-sm">⏰ Posponer</button>
+              <button onClick={() => onDescartar(task)} className="text-sm bg-gray-700 text-white rounded-lg px-3 py-1.5 hover:bg-gray-800 shadow-sm">🚫 Descartar</button>
+            </>
+          )}
         </div>
       )}
     </div>
