@@ -51,7 +51,7 @@ export default function HistorialFilters({
             </label>
 
             <label className="block">
-              <span className="text-xs text-gray-500 mb-1 block">Empleado</span>
+            <span className="text-xs text-gray-500 mb-1 block">Asignada A:</span>
               <select value={filtros.empleado} onChange={e => set('empleado', e.target.value)} className="input w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white">
                 <option value="todos">Todos</option>
                 <option value="cualquiera">Cualquiera</option>
