@@ -19,7 +19,6 @@ export default function Historial() {
     prioridad: 'todas', frecuencia: 'todas', desde: '', hasta: '', q: '',
   });
 
-  // Traemos a los empleados de tu tabla real
   useEffect(() => {
     supabase.from('empleados').select('*').then(({ data }) => {
       setEmpleados(data ?? []);
@@ -36,7 +35,6 @@ export default function Historial() {
     if (filtros.prioridad !== 'todas') q = q.eq('prioridad', filtros.prioridad);
     if (filtros.frecuencia !== 'todas') q = q.eq('frecuencia', filtros.frecuencia);
     
-    // ACÁ EL CAMBIO: Filtramos por el nombre guardado en la tarea
     if (filtros.empleado === 'cualquiera') {
       q = q.is('asignado_nombre', null);
     } else if (filtros.empleado !== 'todos') {
