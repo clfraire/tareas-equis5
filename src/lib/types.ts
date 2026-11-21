@@ -10,6 +10,7 @@ export interface Profile {
   email: string;
   rol: Rol;
   tienda: Tienda | null;
+  push_subscription?: any;
 }
 
 export interface Empleado {
@@ -23,21 +24,19 @@ export interface Task {
   titulo: string;
   descripcion: string | null;
   tienda: Tienda;
-  asignado_a: string | null; // Lo dejamos por compatibilidad
-  asignado_nombre: string | null; // <-- NUEVO: Aquí guardamos "Mile"
+  asignado_a: string | null;
+  asignado_nombre: string | null;
   prioridad: Prioridad;
   frecuencia: Frecuencia;
   fecha_limite: string;
   tiempo_estimado: number | null;
   estado: Estado;
   completada_por: string | null;
-  completada_por_nombre: string | null; // <-- NUEVO: Quién la hizo
+  completada_por_nombre: string | null;
+  comentario_completado: string | null;
   completada_en: string | null;
   motivo_descarte: string | null;
   created_by: string | null;
   created_at: string;
+  profiles?: { nombre: string; email: string } | null;
 }
-  completada_por: string | null;
-  completada_por_nombre: string | null;
-  comentario_completado: string | null; // <-- NUEVO: Agregá esta línea
-  completada_en: string | null;
