@@ -32,6 +32,13 @@ export default function AdminDashboard() {
     return () => { supabase.removeChannel(channel); };
   }, [tienda, estado]);
 
+    useEffect(() => {
+    const interval = setInterval(async () => {
+      await supabase.rpc('marcar_tareas_vencidas');
+      load();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [tienda, estado]);
   // RELOJ AUTOMÁTICO: Revisa cada 60 segundos si hay tareas vencidas
   useEffect(() => {
     const interval = setInterval(async () => {
