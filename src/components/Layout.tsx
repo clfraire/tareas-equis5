@@ -1,6 +1,5 @@
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, Link } from 'react-router-dom';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { profile, signOut } = useAuth();
   const nav = useNavigate();
@@ -32,6 +31,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
+                    {profile?.rol === 'admin' && (
+            <Link to="/historial" className="text-sm text-black underline hover:no-underline mr-4 hidden sm:block">
+              📜 Historial
+            </Link>
+          )}
           <button onClick={async () => { await signOut(); nav('/login'); }}
             className="text-sm font-semibold text-gray-600 hover:text-black border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition">
             Salir
