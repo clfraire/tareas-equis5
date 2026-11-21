@@ -21,9 +21,10 @@ export default function Historial() {
   });
 
   useEffect(() => {
-    supabase.from('profiles').select('*').then(({ data }) => {
+        supabase.from('profiles').select('*').then(({ data }) => {
       const arr = data ?? [];
-      setEmpleados(arr.filter(p => p.rol === 'empleado'));
+      // Trae a todos los usuarios menos tu cuenta de admin principal
+      setEmpleados(arr.filter(p => p.email !== 'admin@equis5.com'));
       const map: Record<string, string> = {};
       arr.forEach(p => (map[p.id] = p.nombre));
       setProfilesMap(map);
