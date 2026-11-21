@@ -14,10 +14,10 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Traemos a TODOS los perfiles sin excepción
   useEffect(() => {
     supabase.from('profiles').select('*').then(({ data }) => {
-      const todos = data ?? [];
-      setEmpleados(todos.filter(p => p.email !== 'admin@equis5.com'));
+      setEmpleados(data ?? []);
     });
   }, []);
 
@@ -54,10 +54,6 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
     setForm({ ...form, fecha_limite: format(targetDate, "yyyy-MM-dd'T'HH:mm") });
   };
 
-  // Acá está el cambio: mostramos a TODAS las empleadas (ya no filtramos por tienda)
-  // Y le agregamos entre paréntesis la tienda a la que pertenecen para que te guíes
-  const empleadosDisponibles = empleados;
-
   return (
     <form onSubmit={submit} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 space-y-3">
       <h2 className="font-bold text-lg">Nueva tarea</h2>
@@ -83,8 +79,9 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
         <select value={form.asignado_a}
           onChange={e => setForm({ ...form, asignado_a: e.target.value })}
           className="border border-gray-300 rounded-lg p-3">
-          <option value="">👥 Cualquiera (de esa tienda)</option>
-          {empleadosDisponibles.map(e => (
+          <option value="">👥 Cualquiera</option>
+          {/* Acá mostramos a todos los perfiles de la base de datos */}
+          {empleados.map(e => (
             <option key={e.id} value={e.id}>
               {e.nombre} {e.tienda ? `(${e.tienda})` : ''}
             </option>
