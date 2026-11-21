@@ -34,9 +34,15 @@ export default function AdminDashboard() {
     const channel = supabase.channel('tasks-admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, load)
       .subscribe();
-    const interval = setInterval(load, 30000);
+      
+    // RELOJ AUTOMÁTICO
+    const interval = setInterval(async () => {
+      await supabase.rpc('marcar_tareas_vencidas');
+      load();
+    }, 30000);
+
     return () => { supabase.removeChannel(channel); clearInterval(interval); };
-  }, [tienda]);
+  }, [tienda, estado]);
 
   // SONIDO ALERTA (10, 5, 2 min) - SONIDO MAS FUERTE
   useEffect(() => {
