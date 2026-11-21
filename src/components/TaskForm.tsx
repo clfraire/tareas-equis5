@@ -14,17 +14,22 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Trae a TODAS las empleadas sin importar la tienda
     supabase.from('empleados').select('*').then(({ data }) => setEmpleados(data ?? []));
   }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true); setError('');
+    
+    // Si es web, no guardamos nombre de asignada
+    const nombreAsignada = form.tienda === 'web' ? null : (form.asignado_nombre || null);
+
     const { error } = await supabase.from('tasks').insert({
       titulo: form.titulo,
       descripcion: form.descripcion || null,
       tienda: form.tienda,
-      asignado_nombre: form.asignado_nombre || null, // Guardamos el nombre
+      asignado_nombre: nombreAsignada,
       prioridad: form.prioridad,
       frecuencia: form.frecuencia,
       fecha_limite: new Date(form.fecha_limite).toISOString(),
@@ -35,9 +40,6 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
     setForm({ ...form, titulo: '', descripcion: '', fecha_limite: '' });
     onCreated();
   }
-
-  // Filtra las empleadas según la tienda seleccionada
-  const filtrados = empleados.filter(e => e.tienda === form.tienda);
 
   return (
     <form onSubmit={submit} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 space-y-3">
@@ -61,12 +63,19 @@ export default function TaskForm({ onCreated }: { onCreated: () => void }) {
           <option value="web">Página Web</option>
         </select>
 
-        <select value={form.asignado_nombre}
-          onChange={e => setForm({ ...form, asignado_nombre: e.target.value })}
-          className="border border-gray-300 rounded-lg p-3">
-          <option value="">👥 Cualquiera</option>
-          {filtrados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
-        </select>
+        {/* Si es WEB, mostramos un texto fijo. Si no, el desplegable con TODAS las chicas */}
+        {form.tienda === 'web' ? (
+          <div className="border border-gray-200 bg-gray-50 rounded-lg p-3 text-sm text-gray-500 flex items-center">
+            👥 Cualquiera (Web)
+          </div>
+        ) : (
+          <select value={form.asignado_nombre}
+            onChange={e => setForm({ ...form, asignado_nombre: e.target.value })}
+            className="border border-gray-300 rounded-lg p-3">
+            <option value="">👥 Cualquiera</option>
+            {empleados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
+          </select>
+        )}
 
         <select value={form.prioridad}
           onChange={e => setForm({ ...form, prioridad: e.target.value as Prioridad })}
