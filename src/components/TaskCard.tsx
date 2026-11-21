@@ -24,7 +24,7 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
     : 'border-gray-800 bg-white';
 
   const textColor = task.prioridad === 'urgente' && !isCompletada && !isDescartada ? 'text-red-700' : 'text-black';
-  const canAct = !isCompletada && !isDescartada && (task.asignado_a === null || task.asignado_a === currentUserId);
+  const canAct = !isCompletada && !isDescartada;
 
   return (
     <div className={`rounded-xl border-l-4 border p-4 shadow-sm transition ${colorBase} ${isVencida ? 'animate-pulse ring-2 ring-red-400' : ''}`}>
@@ -42,11 +42,22 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
         <p>📅 Vence: {format(new Date(task.fecha_limite), "PPp", { locale: es })}</p>
         <p>🏬 Tienda: {task.tienda} · 🔁 {task.frecuencia}</p>
         <p>👤 Asignada a: {task.asignado_nombre ? task.asignado_nombre : 'Cualquiera'}</p>
+        
         {isCompletada && task.completada_en && (
-          <p className="text-green-700 font-semibold">✅ Completada por {task.completada_por_nombre || 'Alguien'}</p>
+          <div className="mt-2 bg-white/60 p-2 rounded-lg border border-green-200">
+            <p className="text-green-700 font-semibold">
+              ✅ Completada por {task.completada_por_nombre || 'Alguien'}
+            </p>
+            {task.comentario_completado && (
+              <p className="text-gray-700 mt-1 italic text-xs">
+                💬 "{task.comentario_completado}"
+              </p>
+            )}
+          </div>
         )}
+        
         {isDescartada && task.motivo_descarte && (
-          <p className="text-gray-700">🚫 Motivo: {task.motivo_descarte}</p>
+          <p className="text-gray-700 mt-1">🚫 Motivo: {task.motivo_descarte}</p>
         )}
       </div>
 
