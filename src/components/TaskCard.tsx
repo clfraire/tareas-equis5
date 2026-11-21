@@ -31,7 +31,9 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
     : 'border-gray-800 bg-white';
 
   const textColor = task.prioridad === 'urgente' && !isCompletada && !isDescartada ? 'text-red-700' : 'text-black';
-  const canAct = !isCompletada && !isDescartada && (task.asignado_a === null || task.asignado_a === currentUserId);
+  
+  // Permitimos que cualquiera la complete si no tiene nombre asignado
+  const canAct = !isCompletada && !isDescartada;
 
   return (
     <div className={`rounded-xl border-l-4 border p-4 shadow-sm transition ${colorBase} ${isVencida ? 'animate-pulse ring-2 ring-red-400' : ''}`}>
@@ -53,9 +55,12 @@ export default function TaskCard({ task, currentUserId, onCompletar, onPosponer,
       <div className="mt-3 text-xs text-gray-600 space-y-1">
         <p>📅 Vence: {format(new Date(task.fecha_limite), "PPp", { locale: es })}</p>
         <p>🏬 Tienda: {task.tienda} · 🔁 {task.frecuencia}</p>
-        <p>👤 Asignada a: {task.asignado_a ? 'empleado específico' : 'Cualquiera'}</p>
-        {isCompletada && task.completada_en && (
-          <p className="text-green-700 font-semibold mt-1">✅ Confirmada en la app</p>
+        
+        {/* ACÁ ESTÁ LA MAGIA: Ahora lee el asignado_nombre */}
+        <p>👤 Asignada a: <span className="font-semibold text-black">{task.asignado_nombre ? task.asignado_nombre : 'Cualquiera'}</span></p>
+        
+        {isCompletada && task.completada_por_nombre && (
+          <p className="text-green-700 font-semibold mt-1">✅ Completada por: {task.completada_por_nombre}</p>
         )}
         {isDescartada && task.motivo_descarte && (
           <p className="text-gray-700 mt-1">🚫 Motivo: {task.motivo_descarte}</p>
